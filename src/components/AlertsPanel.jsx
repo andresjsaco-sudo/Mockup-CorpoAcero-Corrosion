@@ -84,7 +84,8 @@ export default function AlertsPanel({ alerts }) {
       </div>
 
       {/* Alert list */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {filtered.length === 0 ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -99,6 +100,7 @@ export default function AlertsPanel({ alerts }) {
             <AlertCard key={alert.id} alert={alert} index={i} />
           ))
         )}
+          </div>
       </div>
     </div>
   );

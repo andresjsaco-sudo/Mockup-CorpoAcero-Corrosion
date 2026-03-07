@@ -106,11 +106,11 @@ export default function App() {
       <div
         className="main-grid"
         style={{
-          flex: 1,
           display: 'grid',
           gridTemplateColumns: '1fr 340px',
           gap: 0,
-          minHeight: 480,
+          height: 540,        /* fixed height — columns never grow beyond this */
+          minHeight: 0,
         }}
       >
         {/* Left column: Map + Plant Detail side by side */}
@@ -118,6 +118,8 @@ export default function App() {
           display: 'grid',
           gridTemplateColumns: '1fr 320px',
           borderRight: '1px solid var(--border)',
+          height: '100%',
+          minHeight: 0,
         }}>
           {/* Map section */}
           <div className="section-map" style={{
@@ -126,8 +128,10 @@ export default function App() {
             display: 'flex',
             flexDirection: 'column',
             gap: 8,
+            height: '100%',
+            minHeight: 0,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{
                 background: 'var(--accent-blue)',
                 width: 3, height: 16, borderRadius: 2, flexShrink: 0,
@@ -138,7 +142,7 @@ export default function App() {
                 letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
               }}>Mapa de Instalaciones</span>
             </div>
-            <div style={{ flex: 1, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', minHeight: 400 }}>
+            <div style={{ flex: 1, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', minHeight: 0 }}>
               {leafletReady ? (
                 <ColombiaMap plantsData={plantsData} selectedPlant={selectedPlant} onSelectPlant={setSelectedPlant} />
               ) : (
@@ -151,8 +155,16 @@ export default function App() {
           </div>
 
           {/* Plant Detail section */}
-          <div className="section-detail" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div className="section-detail" style={{
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{
                 background: 'var(--accent-amber)',
                 width: 3, height: 16, borderRadius: 2, flexShrink: 0,
@@ -163,7 +175,7 @@ export default function App() {
                 letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
               }}>Detalle de Planta</span>
             </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <PlantDetail
                 plant={selectedPlant}
                 trendData={selectedPlant ? trendData[selectedPlant.id] || [] : []}
@@ -172,9 +184,17 @@ export default function App() {
           </div>
         </div>
 
-        {/* Alerts section */}
-        <div className="section-alerts" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        {/* Alerts section — independent scroll, never stretches the row */}
+        <div className="section-alerts" style={{
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          height: '100%',
+          minHeight: 0,
+          overflow: 'hidden',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span style={{
               background: 'var(--accent-red)',
               width: 3, height: 16, borderRadius: 2, flexShrink: 0,
@@ -185,7 +205,8 @@ export default function App() {
               letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
             }}>Centro de Alertas</span>
           </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+          {/* This div scrolls independently */}
+          <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
             <AlertsPanel alerts={alerts} />
           </div>
         </div>

@@ -12,9 +12,11 @@ export default function AlertsPanel({ alerts }) {
     <div style={{
       background: 'var(--bg-card)',
       border: '1px solid var(--border)',
+      borderRadius: 8,
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
+      minHeight: 0,
       overflow: 'hidden',
     }}>
       {/* Header */}

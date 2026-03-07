@@ -89,110 +89,168 @@ export default function App() {
   const criticalCount = alerts.filter(a => a.status === 'CRITICAL').length;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'var(--bg-void)',
-    }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)' }}>
       <Header
         alertCount={alertCount}
         criticalCount={criticalCount}
         darkMode={darkMode}
         onToggleDark={() => setDarkMode(d => !d)}
       />
-      <KPIBar plantsData={plantsData} />
 
-      {/* Main grid */}
-      <div style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: '1fr 340px',
-        gridTemplateRows: 'minmax(420px, 1fr)',
-        gap: 1,
-        background: 'var(--border)',
-        minHeight: 0,
-      }}>
-        {/* Left: Map + Plant Detail */}
+      {/* ── KPI BAR ─── */}
+      <div className="section-kpi" style={{ borderBottom: '1px solid var(--border)', padding: '16px 20px' }}>
+        <KPIBar plantsData={plantsData} />
+      </div>
+
+      {/* ── MAIN PANEL ─── */}
+      <div
+        className="main-grid"
+        style={{
+          flex: 1,
+          display: 'grid',
+          gridTemplateColumns: '1fr 340px',
+          gap: 0,
+          minHeight: 480,
+        }}
+      >
+        {/* Left column: Map + Plant Detail side by side */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 320px',
-          gap: 1,
-          background: 'var(--border)',
+          borderRight: '1px solid var(--border)',
         }}>
-          {/* Map */}
-          <div style={{ minHeight: 420 }}>
-            {leafletReady ? (
-              <ColombiaMap
-                plantsData={plantsData}
-                selectedPlant={selectedPlant}
-                onSelectPlant={setSelectedPlant}
-              />
-            ) : (
-              <div style={{
-                height: '100%', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', background: 'var(--bg-card)',
-                color: 'var(--text-muted)', fontSize: 11,
-              }}>
-                Cargando mapa...
-              </div>
-            )}
+          {/* Map section */}
+          <div className="section-map" style={{
+            borderRight: '1px solid var(--border)',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{
+                background: 'var(--accent-blue)',
+                width: 3, height: 16, borderRadius: 2, flexShrink: 0,
+                display: 'inline-block',
+              }} />
+              <span style={{
+                fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+              }}>Mapa de Instalaciones</span>
+            </div>
+            <div style={{ flex: 1, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', minHeight: 400 }}>
+              {leafletReady ? (
+                <ColombiaMap plantsData={plantsData} selectedPlant={selectedPlant} onSelectPlant={setSelectedPlant} />
+              ) : (
+                <div style={{
+                  height: '100%', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13,
+                }}>Cargando mapa…</div>
+              )}
+            </div>
           </div>
 
-          {/* Plant Detail */}
-          <PlantDetail
-            plant={selectedPlant}
-            trendData={selectedPlant ? trendData[selectedPlant.id] || [] : []}
-          />
+          {/* Plant Detail section */}
+          <div className="section-detail" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{
+                background: 'var(--accent-amber)',
+                width: 3, height: 16, borderRadius: 2, flexShrink: 0,
+                display: 'inline-block',
+              }} />
+              <span style={{
+                fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+              }}>Detalle de Planta</span>
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <PlantDetail
+                plant={selectedPlant}
+                trendData={selectedPlant ? trendData[selectedPlant.id] || [] : []}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Right: Alerts */}
-        <AlertsPanel alerts={alerts} />
+        {/* Alerts section */}
+        <div className="section-alerts" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{
+              background: 'var(--accent-red)',
+              width: 3, height: 16, borderRadius: 2, flexShrink: 0,
+              display: 'inline-block',
+            }} />
+            <span style={{
+              fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600,
+              letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+            }}>Centro de Alertas</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <AlertsPanel alerts={alerts} />
+          </div>
+        </div>
       </div>
 
-      {/* Charts row */}
-      <ChartsRow plantsData={plantsData} />
+      {/* ── CHARTS ROW ─── */}
+      <div className="section-charts" style={{ borderTop: '2px solid var(--border)', padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <span style={{
+            background: 'var(--accent-green)',
+            width: 3, height: 16, borderRadius: 2,
+            display: 'inline-block',
+          }} />
+          <span style={{
+            fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600,
+            letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+          }}>Análisis y Métricas</span>
+        </div>
+        <ChartsRow plantsData={plantsData} />
+      </div>
 
-      {/* Footer */}
+      {/* ── FOOTER ─── */}
       <div style={{
-        background: 'var(--bg-panel)',
+        background: 'var(--bg-card)',
         borderTop: '1px solid var(--border)',
-        padding: '8px 24px',
+        padding: '12px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        fontSize: 9,
-        color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
+        flexWrap: 'wrap',
+        gap: 8,
+        fontSize: 11,
+        color: 'var(--text-faint)',
+        fontFamily: 'var(--font-data)',
       }}>
-        <span>DETECCIÓN DE CORROSIÓN — CORPOACERO S.A.S © 2025</span>
-        <span>UNINORTE · ING. MECÁNICA & ELECTRÓNICA · PROYECTO DE GRADO</span>
-        <span>MODELO: YOLOv8 TRANSFER LEARNING · NORMA: ASTM B117 · REFRESH: 30s</span>
+        <span>Detección de Corrosión — Corpoacero S.A.S © 2025</span>
+        <span>Uninorte · Ing. Mecánica & Electrónica · Proyecto de Grado</span>
+        <span>YOLOv8 Transfer Learning · ASTM B117 · Refresh: 30s</span>
       </div>
 
-      {/* Toast notifications — BOTTOM LEFT */}
+      {/* ── TOASTS bottom-left ─── */}
       <div style={{
-        position: 'fixed', bottom: 40, left: 24,
+        position: 'fixed', bottom: 24, left: 20,
         display: 'flex', flexDirection: 'column', gap: 8, zIndex: 9999,
+        maxWidth: 340,
       }}>
         {toasts.map(toast => (
           <div key={toast.id} style={{
-            background: 'var(--bg-panel)',
-            border: '1px solid #dc2626',
-            borderLeft: '4px solid #dc2626',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--accent-red)',
+            borderLeft: '4px solid var(--accent-red)',
+            borderRadius: '0 6px 6px 0',
             padding: '12px 16px',
-            maxWidth: 340,
-            boxShadow: '0 4px 20px rgba(220,38,38,0.2)',
+            boxShadow: '0 4px 20px rgba(220,38,38,0.18)',
             animation: 'slide-in-left 0.3s ease forwards',
           }}>
             <div style={{
-              fontSize: 10, fontWeight: 700, color: '#dc2626',
-              letterSpacing: '0.12em', marginBottom: 4,
-              animation: 'blink 0.8s ease-in-out infinite',
+              fontSize: 11, fontWeight: 700, color: 'var(--accent-red)',
+              letterSpacing: '0.08em', marginBottom: 4,
+              animation: 'blink 0.9s ease-in-out infinite',
+              fontFamily: 'var(--font-data)',
             }}>
-              🚨 ALERTA CRÍTICA — {toast.plant.toUpperCase()}
+              🚨 Alerta Crítica — {toast.plant}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               {toast.message}
             </div>
           </div>

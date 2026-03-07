@@ -146,7 +146,7 @@ export default function ColombiaMap({ plantsData, selectedPlant, onSelectPlant }
       }}>
         <div>
           <div style={{
-            fontFamily: 'var(--font-display)',
+            fontFamily: 'var(--font-ui)',
             fontWeight: 700, fontSize: 13,
             letterSpacing: '0.1em',
             color: 'var(--text-primary)',

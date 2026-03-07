@@ -9,14 +9,17 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'var(--bg-panel)', border: '1px solid var(--border)',
-      padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: 11,
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      padding: '8px 12px', borderRadius: 6,
+      fontFamily: 'var(--font-ui)', fontSize: 12,
+      boxShadow: 'var(--shadow-md)',
     }}>
-      <div style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
+      <div style={{ color: 'var(--text-muted)', marginBottom: 4, fontSize: 11 }}>{label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color || p.fill }}>
-          {p.name}: <strong>{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}</strong>
-          {p.name?.includes('Corrosión') ? '%' : ''}
+        <div key={i} style={{ color: p.color || p.fill, fontWeight: 500 }}>
+          {p.name}: <strong style={{ fontFamily: 'var(--font-data)' }}>
+            {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
+          </strong>{p.name?.includes('Corrosión') || p.name === 'mAP' ? '%' : ''}
         </div>
       ))}
     </div>
@@ -64,19 +67,17 @@ export default function ChartsRow({ plantsData }) {
   });
 
   return (
-    <div style={{
+    <div className="charts-grid" style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 220px 1fr',
-      gap: 1,
-      background: 'var(--border)',
-      borderTop: '1px solid var(--border)',
+      gridTemplateColumns: '1fr 240px 1fr',
+      gap: 16,
     }}>
       {/* Bar chart */}
       <ChartCard title="ÍNDICE DE CORROSIÓN POR PLANTA" subtitle="PROMEDIO Y PEOR CASO DETECTADO">
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={barData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-            <XAxis dataKey="name" tick={{ fill: '#7a9ab5', fontSize: 10 }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fill: '#3d5a72', fontSize: 9 }} tickLine={false} axisLine={false} unit="%" />
+            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-ui)' }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fill: 'var(--text-faint)', fontSize: 10 }} tickLine={false} axisLine={false} unit="%" />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="Corrosión Promedio" radius={[2, 2, 0, 0]} maxBarSize={24}>
               {barData.map((entry, i) => (
@@ -121,9 +122,9 @@ export default function ChartsRow({ plantsData }) {
       <ChartCard title="RENDIMIENTO MODELO IA" subtitle="mAP POR INSTALACIÓN · YOLOv8 + TRANSFER LEARNING">
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={confData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }} layout="vertical">
-            <XAxis type="number" domain={[75, 100]} tick={{ fill: '#3d5a72', fontSize: 9 }}
+            <XAxis type="number" domain={[75, 100]} tick={{ fill: 'var(--text-faint)', fontSize: 10 }}
               tickLine={false} axisLine={false} unit="%" />
-            <YAxis type="category" dataKey="name" tick={{ fill: '#7a9ab5', fontSize: 10 }}
+            <YAxis type="category" dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-ui)' }}
               tickLine={false} axisLine={false} width={30} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="mAP" radius={[0, 2, 2, 0]} maxBarSize={18} fill="#38bdf8" fillOpacity={0.7}>
@@ -152,17 +153,14 @@ export default function ChartsRow({ plantsData }) {
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <div style={{
-      background: 'var(--bg-card)',
-      padding: '12px 16px 8px',
-    }}>
+    <div className="card" style={{ padding: '16px 16px 12px', borderRadius: 8 }}>
       <div style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--text-primary)',
-        letterSpacing: '0.1em', marginBottom: 2,
-        fontFamily: 'var(--font-display)',
+        fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
+        fontFamily: 'var(--font-ui)', marginBottom: 2,
       }}>{title}</div>
       <div style={{
-        fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.12em', marginBottom: 8,
+        fontSize: 11, color: 'var(--text-muted)',
+        fontFamily: 'var(--font-ui)', marginBottom: 12,
       }}>{subtitle}</div>
       {children}
     </div>

@@ -27,7 +27,7 @@ export default function AlertsPanel({ alerts }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
             <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13,
+              fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13,
               letterSpacing: '0.1em', color: 'var(--text-primary)',
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
@@ -70,7 +70,7 @@ export default function AlertsPanel({ alerts }) {
                 background: filter === key ? (color ? `${color}20` : 'var(--border)') : 'transparent',
                 border: `1px solid ${filter === key ? (color || 'var(--border-bright)') : 'var(--border)'}`,
                 color: filter === key ? (color || 'var(--text-primary)') : 'var(--text-muted)',
-                fontSize: 9, fontFamily: 'var(--font-mono)',
+                fontSize: 9, fontFamily: 'var(--font-data)',
                 letterSpacing: '0.1em', cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
@@ -166,7 +166,7 @@ function AlertCard({ alert, index }) {
           }} />
         </div>
         <span style={{
-          fontFamily: 'var(--font-mono)', fontWeight: 700,
+          fontFamily: 'var(--font-data)', fontWeight: 700,
           fontSize: 12, color: sc, flexShrink: 0,
         }}>
           {alert.corrosionPct}%

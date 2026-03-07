@@ -6,8 +6,8 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'var(--bg-panel)', border: '1px solid var(--border)',
-      padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: 11,
+      background: 'var(--bg-section)', border: '1px solid var(--border)',
+      padding: '8px 12px', fontFamily: 'var(--font-data)', fontSize: 11,
     }}>
       <div style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
       <div style={{ color: '#f97316' }}>
@@ -64,7 +64,7 @@ export default function PlantDetail({ plant, trendData }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 800,
+              fontFamily: 'var(--font-ui)', fontWeight: 800,
               fontSize: 18, color: statusColor,
               letterSpacing: '0.05em', lineHeight: 1,
             }}>
@@ -100,7 +100,7 @@ export default function PlantDetail({ plant, trendData }) {
             { v: critical, l: 'CRÍTICA', c: '#ef4444' },
           ].map(({ v, l, c }) => (
             <div key={l} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: c, lineHeight: 1 }}>{v}</div>
+              <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 800, fontSize: 20, color: c, lineHeight: 1 }}>{v}</div>
               <div style={{ fontSize: 8, color: c, opacity: 0.7, letterSpacing: '0.1em', marginTop: 2 }}>{l}</div>
             </div>
           ))}
@@ -145,7 +145,7 @@ export default function PlantDetail({ plant, trendData }) {
                 onClick={() => setExpandedZone(isExpanded ? null : zi)}
                 style={{
                   padding: '8px 12px',
-                  background: isExpanded ? getStatusBg(zone.status) : 'var(--bg-panel)',
+                  background: isExpanded ? getStatusBg(zone.status) : 'var(--bg-section)',
                   border: `1px solid ${isExpanded ? sc + '50' : 'var(--border)'}`,
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -174,7 +174,7 @@ export default function PlantDetail({ plant, trendData }) {
 
               {isExpanded && (
                 <div style={{
-                  background: 'var(--bg-void)',
+                  background: 'var(--bg-page)',
                   border: `1px solid ${sc}30`,
                   borderTop: 'none',
                   padding: '6px',
@@ -210,7 +210,7 @@ function PlateRow({ plate }) {
       }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-data)' }}>
             {plate.plateId}
           </span>
           <span style={{

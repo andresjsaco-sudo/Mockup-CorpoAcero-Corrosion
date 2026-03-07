@@ -130,21 +130,21 @@ function AlertCard({ alert, index }) {
       )}
 
       {/* Top row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-        <div style={{ display: 'flex', align: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
           <span style={{
             fontWeight: 700, fontSize: 10, color: sc,
-            letterSpacing: '0.12em',
+            letterSpacing: '0.12em', flexShrink: 0,
             animation: isCritical ? 'blink 1s ease-in-out infinite' : 'none',
           }}>
             ● {alert.status}
           </span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>
-            {alert.plantName} › {alert.zone.split(' - ')[0]}
+          <span style={{ fontSize: 9, color: 'var(--text-muted)', flexShrink: 0 }}>
+            {dateStr} {timeStr}
           </span>
         </div>
-        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-          {dateStr} {timeStr}
+        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500 }}>
+          {alert.plantName} › {alert.zone.split(' - ')[0]}
         </span>
       </div>
 

@@ -205,8 +205,8 @@ export default function App() {
               letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
             }}>Centro de Alertas</span>
           </div>
-          {/* This div scrolls independently */}
-          <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {/* This div is the scroll container */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <AlertsPanel alerts={alerts} />
           </div>
         </div>

@@ -243,7 +243,7 @@ export default function App() {
         fontFamily: 'var(--font-data)',
       }}>
         <span>Detección de Corrosión — Corpacero S.A.S © 2025</span>
-        <span>Uninorte · Ing. Mecánica & Electrónica · Proyecto de Grado</span>
+        <span>Uninorte · Ing. Mecánica & Electrónica</span>
         <span>YOLOv8 Transfer Learning · ASTM B117 · Refresh: 30s</span>
       </div>
 

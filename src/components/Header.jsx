@@ -54,7 +54,7 @@ export default function Header({ alertCount, criticalCount, darkMode, onToggleDa
             fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 18,
             color: 'var(--text-primary)', lineHeight: 1.15, letterSpacing: '-0.01em',
           }}>
-            Corpoacero
+            Corpacero
             <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--text-muted)', marginLeft: 5 }}>S.A.S</span>
           </div>
           <div style={{
@@ -100,7 +100,6 @@ export default function Header({ alertCount, criticalCount, darkMode, onToggleDa
             transition: 'all 0.15s',
           }}
         >
-          <span>{darkMode ? '☀️' : '🌙'}</span>
           <span>{darkMode ? 'Claro' : 'Oscuro'}</span>
         </button>
 

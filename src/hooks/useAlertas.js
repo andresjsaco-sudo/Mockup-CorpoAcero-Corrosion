@@ -16,7 +16,7 @@ export function useAlertas() {
     apiGet('/alertas')
       .then(data => {
         if (!cancelled) {
-          setAlertas(Array.isArray(data) ? data : (data?.mediciones ?? []));
+          setAlertas(Array.isArray(data) ? data : (data?.alertas ?? []));
           setLoading(false);
         }
       })

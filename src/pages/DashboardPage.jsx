@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/Header';
+import { Link } from 'react-router-dom';
+import { Upload } from 'lucide-react';
 import KPIBar from '../components/KPIBar';
 import ColombiaMap from '../components/ColombiaMap';
 import PlantDetail from '../components/PlantDetail';
 import AlertsPanel from '../components/AlertsPanel';
 import ChartsRow from '../components/ChartsRow';
-import { useAuth } from '../auth/AuthContext';
-import { useAlertas } from '../hooks/useAlertas';
 
-// Leaflet CSS y JS vía CDN (reutilizado en ColombiaMap)
+// Leaflet vía CDN — compartido con ColombiaMap
 function useLeaflet() {
   const [ready, setReady] = useState(!!window.L);
   useEffect(() => {
@@ -22,42 +21,49 @@ function useLeaflet() {
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
   const [selectedPunto, setSelectedPunto] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
   const leafletReady = useLeaflet();
 
-  // Alertas para el badge del header
-  const { alertas } = useAlertas();
-  const alertCount = alertas.length;
-  const criticalCount = alertas.filter(a => (a.nivel_corrosion ?? 0) === 3).length;
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)' }}>
-      <Header
-        alertCount={alertCount}
-        criticalCount={criticalCount}
-        darkMode={darkMode}
-        onToggleDark={() => setDarkMode(d => !d)}
-        user={user}
-        onLogout={logout}
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
 
       {/* ── KPI BAR ─── */}
       <div className="section-kpi" style={{ borderBottom: '1px solid var(--border)', padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
+          <div style={{
+            fontFamily: 'var(--font-data)', fontSize: 10, fontWeight: 600,
+            color: 'var(--text-faint)', letterSpacing: '0.14em', textTransform: 'uppercase',
+            paddingTop: 2,
+          }}>
+            Indicadores globales
+          </div>
+          {/* Acceso rápido a nueva medición */}
+          <Link
+            to="/upload"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '8px 16px', background: 'var(--accent-amber)',
+              border: 'none', borderRadius: 8, textDecoration: 'none',
+              fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 12, color: 'white',
+              flexShrink: 0, boxShadow: '0 2px 8px rgba(217,119,6,0.3)',
+            }}
+          >
+            <Upload size={14} />
+            Nueva medición
+          </Link>
+        </div>
         <KPIBar />
       </div>
 
       {/* ── MAIN PANEL ─── */}
-      <div className="main-grid" style={{
-        display: 'grid', gridTemplateColumns: '1fr 340px',
-        gap: 0, height: 540, minHeight: 0,
-      }}>
-        {/* Left: Map + Plant Detail */}
+      <div
+        className="main-grid"
+        style={{
+          display: 'grid', gridTemplateColumns: '1fr 340px',
+          gap: 0, height: 540, minHeight: 0,
+        }}
+      >
+        {/* Columna izquierda: mapa + detalle de planta */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 320px',
           borderRight: '1px solid var(--border)', height: '100%', minHeight: 0,
@@ -65,12 +71,13 @@ export default function DashboardPage() {
           {/* Mapa */}
           <div className="section-map" style={{
             borderRight: '1px solid var(--border)', padding: '16px',
-            display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minHeight: 0,
+            display: 'flex', flexDirection: 'column', gap: 8,
+            height: '100%', minHeight: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ background: 'var(--accent-blue)', width: 3, height: 16, borderRadius: 2, display: 'inline-block' }} />
               <span style={{ fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                Mapa de Instalaciones
+                Mapa de instalaciones
               </span>
             </div>
             <div style={{ flex: 1, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', minHeight: 0 }}>
@@ -92,7 +99,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ background: 'var(--accent-amber)', width: 3, height: 16, borderRadius: 2, display: 'inline-block' }} />
               <span style={{ fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                Detalle de Planta
+                Detalle de planta
               </span>
             </div>
             <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
@@ -109,7 +116,7 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span style={{ background: 'var(--accent-red)', width: 3, height: 16, borderRadius: 2, display: 'inline-block' }} />
             <span style={{ fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-              Centro de Alertas
+              Centro de alertas
             </span>
           </div>
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -123,7 +130,7 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <span style={{ background: 'var(--accent-green)', width: 3, height: 16, borderRadius: 2, display: 'inline-block' }} />
           <span style={{ fontFamily: 'var(--font-data)', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-            Análisis y Métricas
+            Análisis y métricas
           </span>
         </div>
         <ChartsRow />

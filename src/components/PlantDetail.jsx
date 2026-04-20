@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { getStatusColor, getStatusBg, getStatusLabel } from '../data/simulation';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import React from 'react';
+import { useMedicionesPunto } from '../hooks/useMedicionesPunto';
+import {
+  nivelColor, nivelBg, nivelLabel, nivelToStatus,
+} from '../lib/statusUtils';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -11,16 +14,16 @@ const CustomTooltip = ({ active, payload, label }) => {
     }}>
       <div style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
       <div style={{ color: '#f97316' }}>
-        Corrosión: <strong>{payload[0]?.value?.toFixed(1)}%</strong>
+        Área: <strong>{payload[0]?.value?.toFixed(1)}%</strong>
       </div>
     </div>
   );
 };
 
-export default function PlantDetail({ plant, trendData }) {
-  const [expandedZone, setExpandedZone] = useState(null);
+export default function PlantDetail({ punto }) {
+  const { mediciones, loading, error } = useMedicionesPunto(punto?.id_punto);
 
-  if (!plant) {
+  if (!punto) {
     return (
       <div style={{
         background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -32,208 +35,181 @@ export default function PlantDetail({ plant, trendData }) {
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#7a9ab5" strokeWidth="1.5"/>
           <circle cx="12" cy="9" r="2.5" stroke="#7a9ab5" strokeWidth="1.5"/>
         </svg>
-        <div style={{ fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', textAlign: 'center', padding: '0 16px' }}>
           Selecciona una planta en el mapa
         </div>
       </div>
     );
   }
 
-  const allPlates = plant.zones.flatMap(z => z.plates);
-  const critical = allPlates.filter(p => p.status === 'CRITICAL').length;
-  const moderate = allPlates.filter(p => p.status === 'MODERATE').length;
-  const early = allPlates.filter(p => p.status === 'EARLY').length;
-  const ok = allPlates.filter(p => p.status === 'OK').length;
-  const worstSeverity = Math.max(...plant.zones.map(z => z.worstSeverity));
-  const overallStatus = ['OK', 'EARLY', 'MODERATE', 'CRITICAL'][worstSeverity];
-  const statusColor = getStatusColor(overallStatus);
+  const ultimaMedicion = mediciones[0] ?? null;
+  const nivel = ultimaMedicion?.nivel_corrosion ?? -1;
+  const color = nivel >= 0 ? nivelColor(nivel) : 'var(--text-muted)';
+  const bg = nivel >= 0 ? nivelBg(nivel) : 'transparent';
+
+  // Datos del trend: últimas 20 mediciones ordenadas cronológicamente
+  const trendData = [...mediciones]
+    .filter(m => m.area_corroida_pct != null)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .slice(-20)
+    .map(m => ({
+      fecha: new Date(m.timestamp).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }),
+      corrosion: parseFloat((m.area_corroida_pct ?? 0).toFixed(1)),
+    }));
 
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
-      height: '100%', display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',
+      height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
-      {/* Plant Header */}
+      {/* Header del punto */}
       <div style={{
-        padding: '14px 16px',
-        borderBottom: '1px solid var(--border)',
-        background: getStatusBg(overallStatus),
-        flexShrink: 0,
+        padding: '14px 16px', borderBottom: '1px solid var(--border)',
+        background: bg, flexShrink: 0,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{
-              fontFamily: 'var(--font-ui)', fontWeight: 800,
-              fontSize: 18, color: statusColor,
-              letterSpacing: '0.05em', lineHeight: 1,
+              fontFamily: 'var(--font-ui)', fontWeight: 800, fontSize: 16,
+              color, letterSpacing: '0.04em', lineHeight: 1,
             }}>
-              {plant.name.toUpperCase()}
-              {plant.isHQ && <span style={{
-                fontSize: 9, marginLeft: 8, padding: '2px 6px',
-                border: `1px solid ${statusColor}`, verticalAlign: 'middle',
-                letterSpacing: '0.15em',
-              }}>HQ</span>}
+              {(punto.sede ?? punto.id_punto).toUpperCase()}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, letterSpacing: '0.1em' }}>
-              {plant.label} · {plant.zones.length} ZONAS · {allPlates.length} PLACAS
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, letterSpacing: '0.08em' }}>
+              {punto.ciudad} · {punto.departamento} · {punto.empresa}
             </div>
           </div>
-          <div style={{
-            padding: '4px 10px',
-            background: `${statusColor}15`,
-            border: `1px solid ${statusColor}50`,
-            fontSize: 10, fontWeight: 700, color: statusColor,
-            letterSpacing: '0.1em',
-            animation: overallStatus === 'CRITICAL' ? 'blink 1.2s ease-in-out infinite' : 'none',
-          }}>
-            {getStatusLabel(overallStatus).toUpperCase()}
-          </div>
+          {nivel >= 0 && (
+            <div style={{
+              padding: '4px 10px',
+              background: `${color}15`,
+              border: `1px solid ${color}50`,
+              fontSize: 10, fontWeight: 700, color,
+              letterSpacing: '0.1em',
+              animation: nivel === 3 ? 'blink 1.2s ease-in-out infinite' : 'none',
+            }}>
+              {nivelLabel(nivel).toUpperCase()}
+            </div>
+          )}
         </div>
 
-        {/* Mini stats */}
-        <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+        {/* Meta info */}
+        <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
           {[
-            { v: ok, l: 'OK', c: '#22c55e' },
-            { v: early, l: 'TEMPRANA', c: '#f59e0b' },
-            { v: moderate, l: 'MODERADA', c: '#f97316' },
-            { v: critical, l: 'CRÍTICA', c: '#ef4444' },
-          ].map(({ v, l, c }) => (
-            <div key={l} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 800, fontSize: 20, color: c, lineHeight: 1 }}>{v}</div>
-              <div style={{ fontSize: 8, color: c, opacity: 0.7, letterSpacing: '0.1em', marginTop: 2 }}>{l}</div>
+            { l: 'Material', v: punto.tipo_material ?? '—' },
+            { l: 'Estructura', v: punto.tipo_estructura ?? '—' },
+            { l: 'Mediciones', v: mediciones.length },
+          ].map(({ l, v }) => (
+            <div key={l} style={{ textAlign: 'center', minWidth: 50 }}>
+              <div style={{ fontFamily: 'var(--font-data)', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', lineHeight: 1 }}>{v}</div>
+              <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '0.1em', marginTop: 2 }}>{l.toUpperCase()}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Trend Chart */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.12em', marginBottom: 8 }}>
-          TENDENCIA 30 DÍAS — ÍNDICE DE CORROSIÓN PROMEDIO
+      {/* Gráfica de tendencia */}
+      {trendData.length > 1 && (
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.12em', marginBottom: 8 }}>
+            TENDENCIA — ÁREA CORROÍDA (%)
+          </div>
+          <ResponsiveContainer width="100%" height={70}>
+            <AreaChart data={trendData} margin={{ top: 2, right: 0, left: -28, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`grad-${punto.id_punto}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f97316" stopOpacity={0.4}/>
+                  <stop offset="100%" stopColor="#f97316" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="fecha" tick={{ fill: '#3d5a72', fontSize: 8 }} tickLine={false} axisLine={false} interval={4} />
+              <YAxis tick={{ fill: '#3d5a72', fontSize: 8 }} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="corrosion" stroke="#f97316" strokeWidth={1.5} fill={`url(#grad-${punto.id_punto})`} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-        <ResponsiveContainer width="100%" height={80}>
-          <AreaChart data={trendData} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
-            <defs>
-              <linearGradient id={`grad-${plant.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f97316" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="date" tick={{ fill: '#3d5a72', fontSize: 8 }} tickLine={false} axisLine={false}
-              interval={6} />
-            <YAxis tick={{ fill: '#3d5a72', fontSize: 8 }} tickLine={false} axisLine={false} />
-            <ReferenceLine y={15} stroke="#ef4444" strokeDasharray="3 3" strokeOpacity={0.5} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="corrosion" stroke="#f97316" strokeWidth={1.5}
-              fill={`url(#grad-${plant.id})`} dot={false} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      )}
 
-      {/* Zones */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+      {/* Historial de mediciones */}
+      <div style={{ flex: 1, overflow: 'auto', padding: 8 }}>
         <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.12em', padding: '4px 8px 8px' }}>
-          ZONAS DE PRODUCCIÓN
+          HISTORIAL DE MEDICIONES
         </div>
-        {plant.zones.map((zone, zi) => {
-          const sc = getStatusColor(zone.status);
-          const isExpanded = expandedZone === zi;
-          return (
-            <div key={zi} style={{ marginBottom: 4 }}>
-              <div
-                onClick={() => setExpandedZone(isExpanded ? null : zi)}
-                style={{
-                  padding: '8px 12px',
-                  background: isExpanded ? getStatusBg(zone.status) : 'var(--bg-section)',
-                  border: `1px solid ${isExpanded ? sc + '50' : 'var(--border)'}`,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    width: 8, height: 8, borderRadius: '50%', background: sc, flexShrink: 0,
-                    animation: zone.worstSeverity >= 3 ? 'pulse-dot 1.2s ease-in-out infinite' : 'none',
-                  }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{zone.name}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 10, color: sc }}>
-                    {zone.avgCorrosion > 0 ? `${zone.avgCorrosion}% avg` : '—'}
-                  </span>
-                  <span style={{
-                    fontSize: 9, color: sc, fontWeight: 700, letterSpacing: '0.1em',
-                  }}>{zone.plates.length} PL.</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
-                    {isExpanded ? '▲' : '▼'}
-                  </span>
-                </div>
-              </div>
 
-              {isExpanded && (
-                <div style={{
-                  background: 'var(--bg-page)',
-                  border: `1px solid ${sc}30`,
-                  borderTop: 'none',
-                  padding: '6px',
-                  display: 'flex', flexDirection: 'column', gap: 3,
-                }}>
-                  {zone.plates.map((plate, pi) => (
-                    <PlateRow key={pi} plate={plate} />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: 20, fontSize: 11, color: 'var(--text-muted)' }}>
+            Cargando…
+          </div>
+        )}
+        {!loading && error && (
+          <div style={{ padding: 12, fontSize: 11, color: 'var(--accent-red)' }}>Error: {error}</div>
+        )}
+        {!loading && !error && mediciones.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 20, fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+            Sin mediciones registradas para esta planta.
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {mediciones.slice(0, 15).map((m, i) => (
+            <MedicionRow key={m.id_medicion ?? i} medicion={m} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function PlateRow({ plate }) {
-  const sc = getStatusColor(plate.status);
-  const barWidth = Math.min(100, plate.corrosionPct * 2.5);
+function MedicionRow({ medicion }) {
+  const nivel = medicion.nivel_corrosion ?? 0;
+  const color = nivelColor(nivel);
+  const fecha = medicion.timestamp
+    ? new Date(medicion.timestamp).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : '—';
 
   return (
     <div style={{
-      padding: '6px 10px',
-      background: 'var(--bg-card)',
-      border: `1px solid var(--border)`,
-      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 10px',
+      background: 'var(--bg-section)',
+      border: '1px solid var(--border)',
+      display: 'flex', alignItems: 'center', gap: 8,
+      borderLeft: `3px solid ${color}`,
     }}>
-      <div style={{
-        width: 6, height: 6, borderRadius: '50%', background: sc, flexShrink: 0,
-        animation: plate.severity >= 3 ? 'pulse-dot 1.2s ease-in-out infinite' : 'none',
-      }} />
+      {/* Miniatura */}
+      {medicion.url_imagen ? (
+        <img
+          src={medicion.url_imagen}
+          alt=""
+          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, flexShrink: 0, border: '1px solid var(--border)' }}
+        />
+      ) : (
+        <div style={{
+          width: 36, height: 36, borderRadius: 4, flexShrink: 0,
+          background: `${color}15`, border: `1px solid ${color}30`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16,
+        }}>
+          📷
+        </div>
+      )}
+
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-data)' }}>
-            {plate.plateId}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color, fontFamily: 'var(--font-data)' }}>
+            {nivelLabel(nivel)}
           </span>
-          <span style={{
-            fontSize: 9, color: sc, fontWeight: 700, letterSpacing: '0.08em',
-          }}>
-            {plate.corrosionPct}%
-          </span>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{fecha}</span>
         </div>
         <div style={{ height: 3, background: 'var(--border)', borderRadius: 2 }}>
           <div style={{
-            height: '100%', width: `${barWidth}%`, background: sc,
-            borderRadius: 2, transition: 'width 0.5s ease',
-            boxShadow: plate.severity >= 2 ? `0 0 6px ${sc}80` : 'none',
+            height: '100%',
+            width: `${Math.min(100, (medicion.area_corroida_pct ?? 0) * 2)}%`,
+            background: color, borderRadius: 2,
           }} />
         </div>
-      </div>
-      <div style={{
-        fontSize: 8, color: 'var(--text-muted)', textAlign: 'right',
-        flexShrink: 0, lineHeight: 1.4,
-      }}>
-        <div>{plate.confidence}% conf.</div>
-        <div style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-          {plate.lastInspection.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, display: 'flex', justifyContent: 'space-between' }}>
+          <span>Área: {(medicion.area_corroida_pct ?? 0).toFixed(1)}%</span>
+          {medicion.notas && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>{medicion.notas}</span>}
         </div>
       </div>
     </div>

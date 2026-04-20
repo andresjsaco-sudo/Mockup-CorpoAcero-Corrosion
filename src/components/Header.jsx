@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 // Mapeo de grupos Cognito a etiquetas legibles
 const ROL_LABELS = {
@@ -124,6 +125,29 @@ export default function Header({ alertCount, criticalCount, darkMode, onToggleDa
 
       {/* RIGHT: Toggle + Clock + User */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        {/* Botón nueva medición — visible para todos los roles */}
+        <Link
+          to="/upload"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px',
+            background: 'var(--accent-amber)',
+            border: 'none', borderRadius: 7,
+            color: 'white', textDecoration: 'none',
+            fontSize: 12, fontFamily: 'var(--font-ui)', fontWeight: 600,
+            letterSpacing: '0.02em', flexShrink: 0,
+            boxShadow: '0 2px 8px rgba(217,119,6,0.3)',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 1v11M1 6.5h11" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          Nueva medición
+        </Link>
+
         <button
           onClick={onToggleDark}
           style={{

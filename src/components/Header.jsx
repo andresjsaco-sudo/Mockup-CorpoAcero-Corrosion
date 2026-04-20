@@ -1,10 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function Header({ alertCount, criticalCount, darkMode, onToggleDark }) {
+// Mapeo de grupos Cognito a etiquetas legibles
+const ROL_LABELS = {
+  admin: 'Administrador',
+  tecnico: 'Técnico',
+  cliente: 'Cliente',
+};
+
+function getUserRole(groups = []) {
+  if (groups.includes('admin')) return 'admin';
+  if (groups.includes('tecnico')) return 'tecnico';
+  if (groups.includes('cliente')) return 'cliente';
+  return null;
+}
+
+// Genera iniciales del nombre o email del usuario
+function getInitials(name = '') {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+export default function Header({ alertCount, criticalCount, darkMode, onToggleDark, user, onLogout }) {
   const [time, setTime] = useState(new Date());
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -87,7 +122,7 @@ export default function Header({ alertCount, criticalCount, darkMode, onToggleDa
         )}
       </div>
 
-      {/* RIGHT: Toggle + Clock */}
+      {/* RIGHT: Toggle + Clock + User */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         <button
           onClick={onToggleDark}
@@ -114,6 +149,115 @@ export default function Header({ alertCount, criticalCount, darkMode, onToggleDa
             {time.toLocaleDateString('es-CO', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
           </div>
         </div>
+
+        {/* Dropdown de usuario */}
+        {user && (
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setDropdownOpen(o => !o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 10px 6px 6px',
+                background: dropdownOpen ? 'var(--bg-card-hover)' : 'var(--bg-inset)',
+                border: '1px solid var(--border)', borderRadius: 8,
+                cursor: 'pointer', transition: 'background 0.15s',
+              }}
+            >
+              {/* Avatar con iniciales */}
+              <div style={{
+                width: 30, height: 30,
+                background: 'var(--accent-amber)',
+                borderRadius: 6,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-data)', fontWeight: 700,
+                fontSize: 12, color: 'white', flexShrink: 0,
+              }}>
+                {getInitials(user.name || user.email)}
+              </div>
+              <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                <div style={{
+                  fontFamily: 'var(--font-ui)', fontWeight: 600,
+                  fontSize: 12, color: 'var(--text-primary)',
+                  maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {user.name || user.email}
+                </div>
+                {getUserRole(user.groups) && (
+                  <div style={{
+                    fontFamily: 'var(--font-data)', fontSize: 10,
+                    color: 'var(--accent-amber)', letterSpacing: '0.06em',
+                  }}>
+                    {ROL_LABELS[getUserRole(user.groups)]}
+                  </div>
+                )}
+              </div>
+              {/* Chevron */}
+              <svg
+                width="12" height="12" viewBox="0 0 12 12" fill="none"
+                style={{ flexShrink: 0, transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+              >
+                <path d="M2 4l4 4 4-4" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            {/* Menú desplegable */}
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                boxShadow: 'var(--shadow-lg)',
+                minWidth: 180,
+                zIndex: 2000,
+                overflow: 'hidden',
+                animation: 'fade-in-up 0.15s ease forwards',
+              }}>
+                {/* Info del usuario */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderBottom: '1px solid var(--border)',
+                }}>
+                  <div style={{
+                    fontFamily: 'var(--font-ui)', fontWeight: 600,
+                    fontSize: 13, color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {user.name}
+                  </div>
+                  <div style={{
+                    fontFamily: 'var(--font-ui)', fontSize: 11,
+                    color: 'var(--text-muted)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {user.email}
+                  </div>
+                </div>
+
+                {/* Botón cerrar sesión */}
+                <button
+                  onClick={() => { setDropdownOpen(false); onLogout(); }}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: 'transparent', border: 'none',
+                    textAlign: 'left', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    fontFamily: 'var(--font-ui)', fontSize: 13,
+                    color: 'var(--accent-red)',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(220,38,38,0.07)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3M9 10l3-3-3-3M12 7H5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

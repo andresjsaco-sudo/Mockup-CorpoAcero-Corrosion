@@ -12,6 +12,10 @@ import UploadPage from './pages/UploadPage';
 import GaleriaPage from './pages/GaleriaPage';
 import MedicionDetailPage from './pages/MedicionDetailPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import ReportsPage from './pages/ReportsPage';
+import PlantsPage from './pages/PlantsPage';
+import UsersPage from './pages/UsersPage';
+import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
   return (
@@ -34,9 +38,10 @@ export default function App() {
               <Route path="/upload"       element={<UploadPage />} />
               <Route path="/galeria"      element={<GaleriaPage />} />
               <Route path="/galeria/:idMedicion" element={<MedicionDetailPage />} />
-              <Route path="/reportes"     element={<PlaceholderPage titulo="Reportes" />} />
-              <Route path="/plantas"      element={<PlaceholderPage titulo="Plantas" />} />
-              <Route path="/usuarios"     element={<PlaceholderPage titulo="Usuarios" />} />
+              <Route path="/reportes"     element={<ReportsPage />} />
+              <Route path="/plantas"      element={<PlantsPage />} />
+              <Route path="/usuarios"     element={<UsersPage />} />
+              <Route path="/perfil"       element={<ProfilePage />} />
               <Route path="/configuracion" element={<PlaceholderPage titulo="Configuración" />} />
             </Route>
 

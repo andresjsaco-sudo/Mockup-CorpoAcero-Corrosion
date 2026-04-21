@@ -1,11 +1,13 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, LayoutGrid, FileText,
   Factory, Users, Settings, LogOut, ChevronLeft,
-  ChevronRight, X,
+  ChevronRight, X, User,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+
+const AVATAR_STORAGE_KEY = 'corria-avatar-color';
 
 // ─── Definición de items de navegación ───────────────────────────────────────
 const NAV_ITEMS = [
@@ -15,11 +17,10 @@ const NAV_ITEMS = [
   { divider: true },
   { path: '/reportes',  icon: FileText,        label: 'Reportes' },
   { divider: true },
-  // Plantas: solo admin y tecnico
   { path: '/plantas',   icon: Factory,         label: 'Plantas',   roles: ['admin', 'tecnico'] },
-  // Usuarios: solo admin
   { path: '/usuarios',  icon: Users,           label: 'Usuarios',  roles: ['admin'] },
   { divider: true },
+  { path: '/perfil',    icon: User,            label: 'Mi perfil' },
   { path: '/configuracion', icon: Settings,    label: 'Configuración' },
 ];
 
@@ -94,6 +95,8 @@ function NavItem({ item, collapsed }) {
 // ─── Componente principal Sidebar ─────────────────────────────────────────────
 export default function Sidebar({ collapsed, isMobile, onToggle, onLogout }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const avatarColor = localStorage.getItem(AVATAR_STORAGE_KEY) ?? '#d97706';
   const groups = user?.groups ?? [];
   const rol = getPrimaryRole(groups);
 
@@ -216,12 +219,19 @@ export default function Sidebar({ collapsed, isMobile, onToggle, onLogout }) {
       <div style={{ borderTop: '1px solid var(--border)', padding: '10px 8px', flexShrink: 0 }}>
         {/* Avatar + info (solo expandido) */}
         {(!collapsed || isMobile) && user && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 6px', marginBottom: 4, overflow: 'hidden',
-          }}>
+          <div
+            onClick={() => navigate('/perfil')}
+            title="Mi perfil"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 6px', marginBottom: 4, overflow: 'hidden',
+              cursor: 'pointer', borderRadius: 8,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
             <div style={{
-              width: 34, height: 34, borderRadius: 8, background: 'var(--accent-amber)',
+              width: 34, height: 34, borderRadius: 8, background: avatarColor,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-data)', fontWeight: 700, fontSize: 12,
               color: 'white', flexShrink: 0,
@@ -251,12 +261,13 @@ export default function Sidebar({ collapsed, isMobile, onToggle, onLogout }) {
         {/* Avatar solo (colapsado) */}
         {collapsed && !isMobile && user && (
           <div
-            title={user.name || user.email}
+            onClick={() => navigate('/perfil')}
+            title="Mi perfil"
             style={{
-              width: 34, height: 34, borderRadius: 8, background: 'var(--accent-amber)',
+              width: 34, height: 34, borderRadius: 8, background: avatarColor,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-data)', fontWeight: 700, fontSize: 12,
-              color: 'white', margin: '0 auto 4px',
+              color: 'white', margin: '0 auto 4px', cursor: 'pointer',
             }}
           >
             {getInitials(user.name || user.email)}

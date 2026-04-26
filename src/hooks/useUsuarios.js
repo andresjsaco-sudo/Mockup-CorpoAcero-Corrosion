@@ -98,5 +98,20 @@ export function useGestionUsuarios() {
     }
   }, [refetch]);
 
-  return { usuarios, loading, error, mutating, mutError, crearUsuario, editarUsuario, deshabilitarUsuario, habilitarUsuario, refetch };
+  const eliminarUsuario = useCallback(async (idUsuario) => {
+    setMutating(true);
+    setMutError(null);
+    try {
+      const result = await apiDelete(`/usuarios/${idUsuario}/eliminar`);
+      refetch();
+      return result;
+    } catch (err) {
+      setMutError(err.message);
+      throw err;
+    } finally {
+      setMutating(false);
+    }
+  }, [refetch]);
+
+  return { usuarios, loading, error, mutating, mutError, crearUsuario, editarUsuario, deshabilitarUsuario, habilitarUsuario, eliminarUsuario, refetch };
 }

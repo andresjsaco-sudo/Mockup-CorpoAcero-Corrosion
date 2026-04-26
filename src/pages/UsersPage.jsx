@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Users, Plus, Edit2, ToggleLeft, ToggleRight, X, AlertCircle, Check, RefreshCw } from 'lucide-react';
+import {
+  Plus, Edit2, X, AlertCircle, Check,
+  RefreshCw, UserX, Trash2, ChevronUp, ChevronDown,
+} from 'lucide-react';
 import { useGestionUsuarios } from '../hooks/useUsuarios';
 import { useAuth } from '../auth/AuthContext';
 
@@ -33,6 +36,30 @@ function RolBadge({ rol }) {
     }}>
       {s.label}
     </span>
+  );
+}
+
+// ─── Header de columna ordenable ─────────────────────────────────────────────
+function SortableHeader({ label, col, sortCol, sortDir, onSort }) {
+  const active = sortCol === col;
+  return (
+    <th
+      onClick={() => onSort(col)}
+      style={{
+        padding: '9px 14px', textAlign: 'left',
+        fontFamily: 'var(--font-data)', fontSize: 10, fontWeight: 600,
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+        color: active ? 'var(--accent-amber)' : 'var(--text-faint)',
+        borderBottom: '1px solid var(--border)',
+        cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        {label}
+        {active && sortDir === 'asc'  && <ChevronUp   size={11} />}
+        {active && sortDir === 'desc' && <ChevronDown  size={11} />}
+      </span>
+    </th>
   );
 }
 
@@ -132,7 +159,7 @@ function UsuarioForm({ initial = {}, isEdit, onSubmit, saving, error }) {
 }
 
 // ─── Confirm dialog ──────────────────────────────────────────────────────────
-function ConfirmDialog({ message, onConfirm, onCancel, loading }) {
+function ConfirmDialog({ message, onConfirm, onCancel, loading, confirmLabel = 'Confirmar', danger = false }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 500,
@@ -140,9 +167,9 @@ function ConfirmDialog({ message, onConfirm, onCancel, loading }) {
     }}>
       <div style={{
         background: 'var(--bg-card)', border: '1px solid var(--border)',
-        borderRadius: 12, maxWidth: 360, width: '100%', padding: '24px 20px',
+        borderRadius: 12, maxWidth: 400, width: '100%', padding: '24px 20px',
       }}>
-        <div style={{ fontSize: 14, color: 'var(--text-primary)', fontFamily: 'var(--font-ui)', marginBottom: 20, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: 'var(--text-primary)', fontFamily: 'var(--font-ui)', marginBottom: 20, lineHeight: 1.6 }}>
           {message}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -153,12 +180,12 @@ function ConfirmDialog({ message, onConfirm, onCancel, loading }) {
             Cancelar
           </button>
           <button onClick={onConfirm} disabled={loading} style={{
-            padding: '7px 16px', background: '#dc2626', border: 'none',
+            padding: '7px 16px', background: danger ? '#dc2626' : 'var(--accent-amber)', border: 'none',
             borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 13, color: 'white',
             opacity: loading ? 0.6 : 1,
           }}>
-            {loading ? 'Procesando…' : 'Confirmar'}
+            {loading ? 'Procesando…' : confirmLabel}
           </button>
         </div>
       </div>
@@ -189,26 +216,80 @@ function Toast({ message, onDismiss }) {
   );
 }
 
+// ─── Derivar si un usuario está activo según los campos del backend ──────────
+// El backend envía activo: false y fecha_deshabilitacion cuando está deshabilitado
+function esActivo(u) {
+  if (u.activo === false) return false;
+  if (u.fecha_deshabilitacion) return false;
+  return true;
+}
+
+// ─── Ciclo de ordenamiento: null → asc → desc → null ─────────────────────────
+function nextDir(col, sortCol, sortDir) {
+  if (sortCol !== col) return 'asc';
+  if (sortDir === 'asc') return 'desc';
+  return null; // desc → resetear
+}
+
 // ─── UsersPage ────────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const { user: me } = useAuth();
   const isAdmin = me?.groups?.includes('admin');
 
-  const { usuarios, loading, mutating, mutError, crearUsuario, editarUsuario, deshabilitarUsuario, habilitarUsuario } = useGestionUsuarios();
+  const { usuarios, loading, mutating, mutError, crearUsuario, editarUsuario, deshabilitarUsuario, habilitarUsuario, eliminarUsuario } = useGestionUsuarios();
+
   const [search, setSearch] = useState('');
   const [editUsuario, setEditUsuario] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [confirmToggle, setConfirmToggle] = useState(null); // { usuario, newEstado }
+  const [confirmToggle, setConfirmToggle] = useState(null);   // { usuario, activarDespues }
+  const [confirmEliminar, setConfirmEliminar] = useState(null); // { usuario }
+  const [eliminarError, setEliminarError] = useState(null);
   const [formError, setFormError] = useState(null);
-  const [toast, setToast] = useState(null); // mensaje del toast de éxito
+  const [toast, setToast] = useState(null);
 
-  const filtered = useMemo(() => {
+  // Columna y dirección de ordenamiento activos
+  const [sortCol, setSortCol] = useState(null);
+  const [sortDir, setSortDir] = useState(null);
+
+  // Filtra y ordena la lista en el cliente
+  const displayList = useMemo(() => {
     const q = search.toLowerCase();
-    return usuarios.filter(u =>
+    let list = usuarios.filter(u =>
       (u.email ?? '').toLowerCase().includes(q) ||
       (u.nombre ?? u.name ?? '').toLowerCase().includes(q)
     );
-  }, [usuarios, search]);
+
+    if (sortCol && sortDir) {
+      list = [...list].sort((a, b) => {
+        let va, vb;
+        if (sortCol === 'nombre') {
+          va = (a.nombre ?? a.name ?? '').toLowerCase();
+          vb = (b.nombre ?? b.name ?? '').toLowerCase();
+        } else if (sortCol === 'email') {
+          va = (a.email ?? '').toLowerCase();
+          vb = (b.email ?? '').toLowerCase();
+        } else if (sortCol === 'rol') {
+          va = (a.rol ?? a.role ?? a.grupos?.[0] ?? '').toLowerCase();
+          vb = (b.rol ?? b.role ?? b.grupos?.[0] ?? '').toLowerCase();
+        } else if (sortCol === 'estado') {
+          // activos (0) antes que deshabilitados (1) en orden ascendente
+          va = esActivo(a) ? 0 : 1;
+          vb = esActivo(b) ? 0 : 1;
+        }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ?  1 : -1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [usuarios, search, sortCol, sortDir]);
+
+  function handleSort(col) {
+    const dir = nextDir(col, sortCol, sortDir);
+    setSortCol(dir ? col : null);
+    setSortDir(dir);
+  }
 
   const handleCreate = async (payload) => {
     setFormError(null);
@@ -233,9 +314,8 @@ export default function UsersPage() {
   const handleToggle = async () => {
     if (!confirmToggle) return;
     const id = confirmToggle.usuario.id_usuario ?? confirmToggle.usuario.email;
-    const habilitar = confirmToggle.newEstado;
     try {
-      if (habilitar) {
+      if (confirmToggle.activarDespues) {
         await habilitarUsuario(id);
         setToast('Usuario reactivado correctamente.');
       } else {
@@ -245,6 +325,24 @@ export default function UsersPage() {
       setConfirmToggle(null);
     } catch { /* mutError maneja la visualización del error */ }
   };
+
+  const handleEliminar = async () => {
+    if (!confirmEliminar) return;
+    setEliminarError(null);
+    const id = confirmEliminar.usuario.id_usuario ?? confirmEliminar.usuario.email;
+    try {
+      await eliminarUsuario(id);
+      setConfirmEliminar(null);
+      setToast('Usuario eliminado permanentemente.');
+    } catch (err) {
+      setEliminarError(err.message);
+    }
+  };
+
+  // Columnas con y sin ordenamiento
+  const thBase = { padding: '9px 14px', textAlign: 'left', fontFamily: 'var(--font-data)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)', borderBottom: '1px solid var(--border)' };
+  // Número de columnas para el colspan del mensaje vacío
+  const colCount = isAdmin ? 5 : 4;
 
   return (
     <>
@@ -287,7 +385,7 @@ export default function UsersPage() {
           />
         </div>
 
-        {/* Error mutación */}
+        {/* Error de mutación */}
         {mutError && (
           <div style={{ padding: '8px 14px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, color: '#dc2626', fontSize: 12, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertCircle size={13} /> {mutError}
@@ -300,19 +398,20 @@ export default function UsersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: 'var(--font-ui)' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-page)' }}>
-                  {['Usuario', 'Correo', 'Rol', 'Estado', isAdmin ? 'Acciones' : ''].filter(Boolean).map(h => (
-                    <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: 'var(--font-data)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)', borderBottom: '1px solid var(--border)' }}>
-                      {h}
-                    </th>
-                  ))}
+                  <SortableHeader label="Usuario"  col="nombre" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Correo"   col="email"  sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Rol"      col="rol"    sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Estado"   col="estado" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+                  {isAdmin && <th style={thBase}>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading
                   ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                  : filtered.map(u => {
-                      const habilitado = u.habilitado !== false && u.estado !== 'disabled';
+                  : displayList.map(u => {
+                      const activo = esActivo(u);
                       const rolKey = u.rol ?? u.role ?? u.grupos?.[0] ?? 'cliente';
+                      const esSelf = me?.email === u.email;
                       return (
                         <tr key={u.id_usuario ?? u.email} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '10px 14px' }}>
@@ -324,16 +423,17 @@ export default function UsersPage() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               padding: '2px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600,
-                              background: habilitado ? 'rgba(22,163,74,0.08)' : 'rgba(100,116,139,0.1)',
-                              color: habilitado ? '#16a34a' : '#64748b',
+                              background: activo ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)',
+                              color: activo ? '#16a34a' : '#dc2626',
                             }}>
-                              {habilitado ? <Check size={11} /> : null}
-                              {habilitado ? 'Activo' : 'Deshabilitado'}
+                              {activo ? <Check size={11} /> : <X size={11} />}
+                              {activo ? 'Activo' : 'Deshabilitado'}
                             </span>
                           </td>
                           {isAdmin && (
                             <td style={{ padding: '10px 14px' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
+                                {/* Editar */}
                                 <button
                                   onClick={() => { setEditUsuario(u); setFormError(null); }}
                                   title="Editar"
@@ -341,13 +441,24 @@ export default function UsersPage() {
                                 >
                                   <Edit2 size={13} />
                                 </button>
+                                {/* Deshabilitar / Reactivar */}
                                 <button
-                                  onClick={() => setConfirmToggle({ usuario: u, newEstado: !habilitado })}
-                                  title={habilitado ? 'Deshabilitar' : 'Reactivar'}
-                                  style={{ padding: '5px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', color: habilitado ? '#dc2626' : '#16a34a', display: 'flex' }}
+                                  onClick={() => setConfirmToggle({ usuario: u, activarDespues: !activo })}
+                                  title={activo ? 'Deshabilitar' : 'Reactivar'}
+                                  style={{ padding: '5px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', color: activo ? '#dc2626' : '#16a34a', display: 'flex' }}
                                 >
-                                  {habilitado ? <ToggleRight size={14} /> : <RefreshCw size={14} />}
+                                  {activo ? <UserX size={13} /> : <RefreshCw size={13} />}
                                 </button>
+                                {/* Eliminar permanentemente — oculto para el propio usuario */}
+                                {!esSelf && (
+                                  <button
+                                    onClick={() => { setConfirmEliminar({ usuario: u }); setEliminarError(null); }}
+                                    title="Eliminar permanentemente"
+                                    style={{ padding: '5px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', color: '#dc2626', display: 'flex' }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           )}
@@ -355,8 +466,8 @@ export default function UsersPage() {
                       );
                     })
                 }
-                {!loading && filtered.length === 0 && (
-                  <tr><td colSpan={isAdmin ? 5 : 4} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+                {!loading && displayList.length === 0 && (
+                  <tr><td colSpan={colCount} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
                     {search ? 'Sin resultados para la búsqueda' : 'No hay usuarios registrados'}
                   </td></tr>
                 )}
@@ -368,7 +479,7 @@ export default function UsersPage() {
 
       {/* ── Modal: Editar usuario ── */}
       {editUsuario && (
-        <Modal title={`Editar usuario`} onClose={() => setEditUsuario(null)}>
+        <Modal title="Editar usuario" onClose={() => setEditUsuario(null)}>
           <UsuarioForm initial={editUsuario} isEdit onSubmit={handleEdit} saving={mutating} error={formError} />
         </Modal>
       )}
@@ -380,16 +491,43 @@ export default function UsersPage() {
         </Modal>
       )}
 
-      {/* ── Confirm: toggle estado ── */}
+      {/* ── Confirm: deshabilitar / reactivar ── */}
       {confirmToggle && (
         <ConfirmDialog
           message={
-            confirmToggle.newEstado
+            confirmToggle.activarDespues
               ? `¿Reactivar a ${confirmToggle.usuario.email}?`
               : `¿Deshabilitar a ${confirmToggle.usuario.email}?`
           }
+          confirmLabel={confirmToggle.activarDespues ? 'Reactivar' : 'Deshabilitar'}
+          danger={!confirmToggle.activarDespues}
           onConfirm={handleToggle}
           onCancel={() => setConfirmToggle(null)}
+          loading={mutating}
+        />
+      )}
+
+      {/* ── Confirm: eliminar permanentemente ── */}
+      {confirmEliminar && (
+        <ConfirmDialog
+          message={
+            <>
+              <span>¿Eliminar permanentemente a <strong>{confirmEliminar.usuario.email}</strong>?</span>
+              <br /><br />
+              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                Esta acción no se puede deshacer. El usuario perderá acceso inmediatamente y todos sus datos serán eliminados.
+              </span>
+              {eliminarError && (
+                <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 7, color: '#dc2626', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertCircle size={13} /> {eliminarError}
+                </div>
+              )}
+            </>
+          }
+          confirmLabel="Eliminar"
+          danger
+          onConfirm={handleEliminar}
+          onCancel={() => setConfirmEliminar(null)}
           loading={mutating}
         />
       )}

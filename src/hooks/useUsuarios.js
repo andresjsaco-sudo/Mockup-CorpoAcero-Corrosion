@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiGet, apiPost, apiPut } from '../lib/apiClient';
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/apiClient';
 import { useRefreshKey } from './RefreshKeyContext';
 
 export function useUsuarios() {
@@ -68,11 +68,11 @@ export function useGestionUsuarios() {
     }
   }, [refetch]);
 
-  const toggleEstado = useCallback(async (idUsuario, habilitado) => {
+  const deshabilitarUsuario = useCallback(async (idUsuario) => {
     setMutating(true);
     setMutError(null);
     try {
-      const result = await apiPut(`/usuarios/${idUsuario}/estado`, { habilitado });
+      const result = await apiDelete(`/usuarios/${idUsuario}`);
       refetch();
       return result;
     } catch (err) {
@@ -83,5 +83,20 @@ export function useGestionUsuarios() {
     }
   }, [refetch]);
 
-  return { usuarios, loading, error, mutating, mutError, crearUsuario, editarUsuario, toggleEstado, refetch };
+  const habilitarUsuario = useCallback(async (idUsuario) => {
+    setMutating(true);
+    setMutError(null);
+    try {
+      const result = await apiPut(`/usuarios/${idUsuario}/estado`, { habilitado: true });
+      refetch();
+      return result;
+    } catch (err) {
+      setMutError(err.message);
+      throw err;
+    } finally {
+      setMutating(false);
+    }
+  }, [refetch]);
+
+  return { usuarios, loading, error, mutating, mutError, crearUsuario, editarUsuario, deshabilitarUsuario, habilitarUsuario, refetch };
 }

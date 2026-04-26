@@ -29,14 +29,19 @@ function SkeletonRow({ cols = 5 }) {
 }
 
 // ─── Tendencia badge ─────────────────────────────────────────────────────────
+// Acepta número (reporte global) o string 'mejorando'|'estable'|'empeorando' (reporte planta)
 function TendenciaBadge({ valor }) {
   if (valor === undefined || valor === null) return null;
-  if (valor < -0.01) return (
+
+  const mejorando = valor === 'mejorando' || (typeof valor === 'number' && valor < -0.01);
+  const empeorando = valor === 'empeorando' || (typeof valor === 'number' && valor > 0.01);
+
+  if (mejorando) return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#16a34a', fontSize: 12, fontWeight: 600 }}>
       <TrendingDown size={13} /> Mejorando
     </span>
   );
-  if (valor > 0.01) return (
+  if (empeorando) return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#dc2626', fontSize: 12, fontWeight: 600 }}>
       <TrendingUp size={13} /> Empeorando
     </span>
@@ -75,10 +80,13 @@ export default function ReportsPage() {
   const { puntos } = usePuntos();
 
   const handleGenerar = useCallback(() => {
+    // Convertir fechas YYYY-MM-DD a ISO8601 completo para el backend
+    const desdeISO = desde ? new Date(desde + 'T00:00:00').toISOString() : undefined;
+    const hastaISO = hasta ? new Date(hasta + 'T23:59:59').toISOString() : undefined;
     generarReporte(tab === 'planta' ? 'planta' : 'global', {
       idPunto: tab === 'planta' ? idPunto : undefined,
-      desde: desde || undefined,
-      hasta: hasta || undefined,
+      desde: desdeISO,
+      hasta: hastaISO,
     });
   }, [tab, idPunto, desde, hasta, generarReporte]);
 
@@ -91,7 +99,8 @@ export default function ReportsPage() {
     document.title = prev;
   }, [tab]);
 
-  // Datos derivados del reporte
+  // Datos derivados del reporte.
+  // tendencia_pct viene del reporte global (número); tendencia del de planta (string)
   const tendencia = reporte?.tendencia_pct ?? reporte?.tendencia ?? null;
   const mediciones = reporte?.mediciones ?? [];
   const distribucion = reporte?.distribucion_nivel ?? null;
@@ -183,7 +192,11 @@ export default function ReportsPage() {
                 fontFamily: 'var(--font-ui)', fontSize: 13, minWidth: 180,
               }}>
                 <option value="">Seleccionar...</option>
-                {puntos.map(p => <option key={p.id_punto} value={p.id_punto}>{p.nombre_punto}</option>)}
+                {puntos.map(p => (
+                  <option key={p.id_punto} value={p.id_punto}>
+                    {[p.sede, p.ciudad, p.empresa].filter(Boolean).join(' · ')}
+                  </option>
+                ))}
               </select>
             </div>
           )}
@@ -253,7 +266,7 @@ export default function ReportsPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
               <KPICard label="Total mediciones" value={loading ? '…' : (reporte?.total_mediciones ?? mediciones.length)} />
               <KPICard label="Nivel promedio" value={loading ? '…' : (reporte?.nivel_promedio != null ? reporte.nivel_promedio.toFixed(2) : '—')} />
-              <KPICard label="Área corroída prom." value={loading ? '…' : (reporte?.area_promedio != null ? `${reporte.area_promedio.toFixed(1)}%` : '—')} />
+              <KPICard label="Área corroída prom." value={loading ? '…' : (reporte?.area_promedio != null ? `${parseFloat(reporte.area_promedio).toFixed(1)}%` : '—')} />
               <KPICard
                 label="Tendencia"
                 value={loading ? '…' : <TendenciaBadge valor={tendencia} />}

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Users, Plus, Edit2, ToggleLeft, ToggleRight, X, AlertCircle, Check } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Users, Plus, Edit2, ToggleLeft, ToggleRight, X, AlertCircle, Check, RefreshCw } from 'lucide-react';
 import { useGestionUsuarios } from '../hooks/useUsuarios';
 import { useAuth } from '../auth/AuthContext';
 
@@ -76,15 +76,13 @@ function UsuarioForm({ initial = {}, isEdit, onSubmit, saving, error }) {
     nombre: initial.nombre ?? initial.name ?? '',
     rol: initial.rol ?? initial.role ?? 'tecnico',
   });
-  const [pw, setPw] = useState('');
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...form };
-    if (!isEdit && pw) payload.password = pw;
-    onSubmit(payload);
+    // Al crear, el backend genera y envía la contraseña temporal automáticamente
+    onSubmit({ ...form });
   };
 
   return (
@@ -114,14 +112,6 @@ function UsuarioForm({ initial = {}, isEdit, onSubmit, saving, error }) {
           <option value="cliente">Cliente</option>
         </select>
       </div>
-      {!isEdit && (
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontFamily: 'var(--font-data)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)', marginBottom: 5 }}>
-            Contraseña temporal *
-          </label>
-          <input type="password" required={!isEdit} value={pw} onChange={e => setPw(e.target.value)} style={inputStyle} autoComplete="new-password" />
-        </div>
-      )}
       {error && (
         <div style={{ padding: '8px 12px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 7, color: '#dc2626', fontSize: 12, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
           <AlertCircle size={13} /> {error}
@@ -176,17 +166,41 @@ function ConfirmDialog({ message, onConfirm, onCancel, loading }) {
   );
 }
 
+// ─── Toast simple ─────────────────────────────────────────────────────────────
+function Toast({ message, onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, right: 24, zIndex: 600,
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '10px 16px',
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      borderLeft: '3px solid #16a34a', borderRadius: 8,
+      boxShadow: 'var(--shadow-lg)',
+      fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text-primary)',
+    }}>
+      <Check size={14} color="#16a34a" />
+      {message}
+    </div>
+  );
+}
+
 // ─── UsersPage ────────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const { user: me } = useAuth();
   const isAdmin = me?.groups?.includes('admin');
 
-  const { usuarios, loading, mutating, mutError, crearUsuario, editarUsuario, toggleEstado } = useGestionUsuarios();
+  const { usuarios, loading, mutating, mutError, crearUsuario, editarUsuario, deshabilitarUsuario, habilitarUsuario } = useGestionUsuarios();
   const [search, setSearch] = useState('');
   const [editUsuario, setEditUsuario] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [confirmToggle, setConfirmToggle] = useState(null); // { usuario, newEstado }
   const [formError, setFormError] = useState(null);
+  const [toast, setToast] = useState(null); // mensaje del toast de éxito
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -218,10 +232,18 @@ export default function UsersPage() {
 
   const handleToggle = async () => {
     if (!confirmToggle) return;
+    const id = confirmToggle.usuario.id_usuario ?? confirmToggle.usuario.email;
+    const habilitar = confirmToggle.newEstado;
     try {
-      await toggleEstado(confirmToggle.usuario.id_usuario ?? confirmToggle.usuario.email, confirmToggle.newEstado);
+      if (habilitar) {
+        await habilitarUsuario(id);
+        setToast('Usuario reactivado correctamente.');
+      } else {
+        await deshabilitarUsuario(id);
+        setToast('Usuario deshabilitado correctamente.');
+      }
       setConfirmToggle(null);
-    } catch { /* mutError handles display */ }
+    } catch { /* mutError maneja la visualización del error */ }
   };
 
   return (
@@ -321,10 +343,10 @@ export default function UsersPage() {
                                 </button>
                                 <button
                                   onClick={() => setConfirmToggle({ usuario: u, newEstado: !habilitado })}
-                                  title={habilitado ? 'Deshabilitar' : 'Habilitar'}
+                                  title={habilitado ? 'Deshabilitar' : 'Reactivar'}
                                   style={{ padding: '5px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', color: habilitado ? '#dc2626' : '#16a34a', display: 'flex' }}
                                 >
-                                  {habilitado ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                                  {habilitado ? <ToggleRight size={14} /> : <RefreshCw size={14} />}
                                 </button>
                               </div>
                             </td>
@@ -363,7 +385,7 @@ export default function UsersPage() {
         <ConfirmDialog
           message={
             confirmToggle.newEstado
-              ? `¿Habilitar a ${confirmToggle.usuario.email}?`
+              ? `¿Reactivar a ${confirmToggle.usuario.email}?`
               : `¿Deshabilitar a ${confirmToggle.usuario.email}?`
           }
           onConfirm={handleToggle}
@@ -371,6 +393,9 @@ export default function UsersPage() {
           loading={mutating}
         />
       )}
+
+      {/* ── Toast de éxito ── */}
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

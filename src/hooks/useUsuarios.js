@@ -87,7 +87,7 @@ export function useGestionUsuarios() {
     setMutating(true);
     setMutError(null);
     try {
-      const result = await apiPut(`/usuarios/${idUsuario}/estado`, { habilitado: true });
+      const result = await apiPut(`/usuarios/${idUsuario}`, { reactivar: true });
       refetch();
       return result;
     } catch (err) {

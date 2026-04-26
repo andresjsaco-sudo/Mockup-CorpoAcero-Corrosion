@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   signIn,
   signOut,
+  confirmSignIn,
   getCurrentUser,
   fetchAuthSession,
 } from 'aws-amplify/auth';
@@ -61,11 +62,29 @@ export function AuthProvider({ children }) {
     try {
       const result = await signIn({ username: email, password });
 
-      // Algunos flujos de Cognito requieren pasos adicionales (cambio de contraseña, MFA)
+      // Cognito requiere que el usuario establezca su contraseña en el primer ingreso
+      if (result.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
+        return { needsNewPassword: true };
+      }
+
+      // Otros challenges no soportados (MFA, etc.)
       if (result.nextStep?.signInStep !== 'DONE' && result.nextStep?.signInStep !== undefined) {
         throw new Error('Se requiere un paso adicional. Contacta al administrador.');
       }
 
+      const session = await fetchAuthSession();
+      const userData = buildUserFromSession(session);
+      setUser(userData);
+      return userData;
+    } catch (err) {
+      throw new Error(parseAuthError(err));
+    }
+  }, []);
+
+  // Completa el challenge NEW_PASSWORD_REQUIRED con la nueva contraseña elegida por el usuario
+  const confirmNewPassword = useCallback(async (nuevaContraseña) => {
+    try {
+      await confirmSignIn({ challengeResponse: nuevaContraseña });
       const session = await fetchAuthSession();
       const userData = buildUserFromSession(session);
       setUser(userData);
@@ -90,6 +109,7 @@ export function AuthProvider({ children }) {
       isLoading,
       login,
       logout,
+      confirmNewPassword,
     }}>
       {children}
     </AuthContext.Provider>
